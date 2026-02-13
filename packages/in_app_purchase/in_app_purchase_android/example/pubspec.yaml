@@ -16,7 +16,13 @@ dependencies:
     # The example app is bundled with the plugin so we use a path dependency on
     # the parent directory to use the current plugin's version.
     path: ../
-  in_app_purchase_platform_interface: ^1.0.0
+    
+    
+#  in_app_purchase_platform_interface: ^1.0.0
+  
+  in_app_purchase_platform_interface:
+    path: ../../in_app_purchase_platform_interface
+    
   shared_preferences: ^2.0.0
 
 dev_dependencies:

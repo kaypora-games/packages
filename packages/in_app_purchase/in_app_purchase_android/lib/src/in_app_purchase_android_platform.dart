@@ -8,10 +8,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
+import 'package:plato/plato.dart';
 
 import '../billing_client_wrappers.dart';
 import '../in_app_purchase_android.dart';
 import 'billing_client_wrappers/billing_config_wrapper.dart';
+
+const _logr = Debugr(true, prefix: 'iap-android');
 
 /// [IAPError.code] code for failed purchases.
 const String kPurchaseErrorCode = 'purchase_error';
@@ -79,6 +82,9 @@ class InAppPurchaseAndroidPlatform extends InAppPurchasePlatform {
   Future<ProductDetailsResponse> queryProductDetails(
     Set<String> identifiers,
   ) async {
+
+    _logr.log(() => 'queryProductDetails');
+
     List<ProductDetailsResponseWrapper>? productResponses;
     PlatformException? exception;
 
@@ -161,53 +167,82 @@ class InAppPurchaseAndroidPlatform extends InAppPurchasePlatform {
   }
 
   @override
-  Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) async {
-    ChangeSubscriptionParam? changeSubscriptionParam;
-    String? offerToken;
+  Future<BuyResponse> buyNonConsumable({required PurchaseParam purchaseParam}) async {
 
-    if (purchaseParam is GooglePlayPurchaseParam) {
-      changeSubscriptionParam = purchaseParam.changeSubscriptionParam;
-      offerToken = purchaseParam.offerToken;
+    try {
+      ChangeSubscriptionParam? changeSubscriptionParam;
+      String? offerToken;
+
+      _logr.log(() => 'buyNonConsumable');
+
+      if (purchaseParam is GooglePlayPurchaseParam) {
+        changeSubscriptionParam = purchaseParam.changeSubscriptionParam;
+        offerToken = purchaseParam.offerToken;
+      }
+
+      if (offerToken == null &&
+          purchaseParam.productDetails is GooglePlayProductDetails) {
+        offerToken =
+            (purchaseParam.productDetails as GooglePlayProductDetails).offerToken;
+      }
+
+      final BillingResultWrapper billingResultWrapper = await billingClientManager
+          .runWithClient(
+            (BillingClient client) =>
+            client.launchBillingFlow(
+              product: purchaseParam.productDetails.id,
+              offerToken: offerToken,
+              accountId: purchaseParam.applicationUserName,
+              oldProduct: changeSubscriptionParam?.oldPurchaseDetails.productID,
+              purchaseToken: changeSubscriptionParam
+                  ?.oldPurchaseDetails
+                  .verificationData
+                  .serverVerificationData,
+              replacementMode: changeSubscriptionParam?.replacementMode,
+            ),
+      );
+
+      return BuyResponse(debugMessage: billingResultWrapper.debugMessage, type: switch (billingResultWrapper.responseCode) {
+        BillingResponse.ok => BuyResponseType.ok,
+        BillingResponse.userCanceled => BuyResponseType.userCanceled,
+        BillingResponse.networkError => BuyResponseType.networkError,
+        BillingResponse.serviceDisconnected => BuyResponseType.serviceDisconnected,
+        BillingResponse.serviceTimeout => BuyResponseType.serviceTimeout,
+        BillingResponse.featureNotSupported => BuyResponseType.featureNotSupported,
+        BillingResponse.serviceUnavailable => BuyResponseType.serviceUnavailable,
+        BillingResponse.billingUnavailable => BuyResponseType.billingUnavailable,
+        BillingResponse.itemUnavailable => BuyResponseType.itemUnavailable,
+        BillingResponse.developerError => BuyResponseType.developerError,
+        BillingResponse.error => BuyResponseType.error,
+        BillingResponse.itemAlreadyOwned => BuyResponseType.itemAlreadyOwned,
+        BillingResponse.itemNotOwned => BuyResponseType.itemNotOwned,
+      });
+    } catch (e, s) {
+      return BuyResponse(error: e, stack: s);
     }
-
-    if (offerToken == null &&
-        purchaseParam.productDetails is GooglePlayProductDetails) {
-      offerToken =
-          (purchaseParam.productDetails as GooglePlayProductDetails).offerToken;
-    }
-
-    final BillingResultWrapper billingResultWrapper = await billingClientManager
-        .runWithClient(
-          (BillingClient client) => client.launchBillingFlow(
-            product: purchaseParam.productDetails.id,
-            offerToken: offerToken,
-            accountId: purchaseParam.applicationUserName,
-            oldProduct: changeSubscriptionParam?.oldPurchaseDetails.productID,
-            purchaseToken: changeSubscriptionParam
-                ?.oldPurchaseDetails
-                .verificationData
-                .serverVerificationData,
-            replacementMode: changeSubscriptionParam?.replacementMode,
-          ),
-        );
-    return billingResultWrapper.responseCode == BillingResponse.ok;
   }
 
   @override
-  Future<bool> buyConsumable({
+  Future<BuyResponse> buyConsumable({
     required PurchaseParam purchaseParam,
     bool autoConsume = true,
-  }) {
+  }) async {
+
+    _logr.log(() => 'buyConsumable');
+
     if (autoConsume) {
       _productIdsToConsume.add(purchaseParam.productDetails.id);
     }
-    return buyNonConsumable(purchaseParam: purchaseParam);
+    return await buyNonConsumable(purchaseParam: purchaseParam);
   }
 
   @override
   Future<BillingResultWrapper> completePurchase(
     PurchaseDetails purchase,
   ) async {
+
+    _logr.log(() => 'completePurchase');
+
     assert(
       purchase is GooglePlayPurchaseDetails,
       'On Android, the `purchase` should always be of type `GooglePlayPurchaseDetails`.',
@@ -228,6 +263,9 @@ class InAppPurchaseAndroidPlatform extends InAppPurchasePlatform {
 
   @override
   Future<void> restorePurchases({String? applicationUserName}) async {
+
+    _logr.log(() => 'restorePurchases');
+
     List<PurchasesResultWrapper> responses;
 
     responses = await Future.wait(<Future<PurchasesResultWrapper>>[

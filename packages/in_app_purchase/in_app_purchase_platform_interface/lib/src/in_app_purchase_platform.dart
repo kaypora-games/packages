@@ -4,9 +4,77 @@
 
 import 'dart:async';
 
+import 'package:plato/plato.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'types/types.dart';
+
+/// A response for buyConsumable or buyNonConsumable
+class BuyResponse {
+
+  /// Construct a buy response
+  BuyResponse({this.type, this.debugMessage, this.error, this.stack});
+
+  /// Type of the response
+  final BuyResponseType? type;
+  /// Debug message provided by the platform implementation
+  final String? debugMessage;
+  /// Error of the response
+  final Object? error;
+  /// Stack trace of the error
+  final StackTrace? stack;
+
+  @override
+  String toString() => Printr.print(this,
+    type,
+    debugMessage,
+    error,
+    stack,
+  );
+}
+
+/// All possible buy response codes when buyConsumable or buyNonConsumable is invoked
+enum BuyResponseType {
+
+  // common
+
+  /// Success.
+  ok,
+  /// The user pressed back or canceled a dialog.
+  userCanceled,
+
+  // Android only
+
+  /// The request has reached the maximum timeout before Google Play responds.
+  serviceTimeout,
+  /// The requested feature is not supported by Play Store on the current device.
+  featureNotSupported,
+  /// The Play Store service is not connected now - potentially transient state.
+  serviceDisconnected,
+  /// The network connection is down.
+  serviceUnavailable,
+  /// The billing API version is not supported for the type requested.
+  billingUnavailable,
+  /// The requested product is not available for purchase.
+  itemUnavailable,
+  /// Invalid arguments provided to the API.
+  developerError,
+  /// Fatal error during the API action.
+  error,
+  /// Failure to purchase since item is already owned.
+  itemAlreadyOwned,
+  /// Failure to consume since item is not owned.
+  itemNotOwned,
+  /// Network connection failure between the device and Play systems.
+  networkError,
+
+  // StoreKit only
+
+  /// The purchase succeeded but the transaction could not be verified.
+  unverified,
+  /// The purchase is pending, and requires action from the customer.
+  pending,
+}
 
 /// The interface that implementations of in_app_purchase must implement.
 ///
@@ -106,7 +174,7 @@ abstract class InAppPurchasePlatform extends PlatformInterface {
   ///  * [restorePurchases], for restoring non consumable products.
   ///
   /// Calling this method for consumable items will cause unwanted behaviors!
-  Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) =>
+  Future<BuyResponse> buyNonConsumable({required PurchaseParam purchaseParam}) async =>
       throw UnimplementedError('buyNonConsumable() has not been implemented.');
 
   /// Buy a consumable product.
@@ -147,10 +215,10 @@ abstract class InAppPurchasePlatform extends PlatformInterface {
   ///
   /// Calling this method for non consumable items will cause unwanted
   /// behaviors!
-  Future<bool> buyConsumable({
+  Future<BuyResponse> buyConsumable({
     required PurchaseParam purchaseParam,
     bool autoConsume = true,
-  }) => throw UnimplementedError('buyConsumable() has not been implemented.');
+  }) async => throw UnimplementedError('buyConsumable() has not been implemented.');
 
   /// Mark that purchased content has been delivered to the user.
   ///

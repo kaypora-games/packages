@@ -28,6 +28,7 @@ class InAppPurchase implements InAppPurchasePlatformAdditionProvider {
   static InAppPurchase get instance => _getOrCreateInstance();
 
   static InAppPurchase _getOrCreateInstance() {
+
     if (_instance != null) {
       return _instance!;
     }
@@ -113,7 +114,7 @@ class InAppPurchase implements InAppPurchasePlatformAdditionProvider {
   ///  * [restorePurchases], for restoring non consumable products.
   ///
   /// Calling this method for consumable items will cause unwanted behaviors!
-  Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) =>
+  Future<BuyResponse> buyNonConsumable({required PurchaseParam purchaseParam}) =>
       InAppPurchasePlatform.instance.buyNonConsumable(
         purchaseParam: purchaseParam,
       );
@@ -156,10 +157,10 @@ class InAppPurchase implements InAppPurchasePlatformAdditionProvider {
   ///
   /// Calling this method for non consumable items will cause unwanted
   /// behaviors!
-  Future<bool> buyConsumable({
+  Future<BuyResponse> buyConsumable({
     required PurchaseParam purchaseParam,
     bool autoConsume = true,
-  }) => InAppPurchasePlatform.instance.buyConsumable(
+  }) async => await InAppPurchasePlatform.instance.buyConsumable(
     purchaseParam: purchaseParam,
     autoConsume: autoConsume,
   );
