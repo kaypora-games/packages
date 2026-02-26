@@ -5,7 +5,7 @@ issue_tracker: https://github.com/flutter/flutter/issues?q=is%3Aissue+is%3Aopen+
 publish_to: none
 # NOTE: We strongly prefer non-breaking changes, even at the expense of a
 # less-clean API. See https://flutter.dev/go/platform-interface-breaking-changes
-version: 1.4.0
+version: 1.4.0-bfut-0.0.1
 
 environment:
   sdk: ^3.8.0
@@ -16,7 +16,9 @@ dependencies:
     sdk: flutter
 
   plato:
-    path: ../../../../plato/
+    git:
+      url: https://github.com/kaypora-games/plato.git
+      ref: build/integrate-ci
 
   plugin_platform_interface: ^2.1.7
 
