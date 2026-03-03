@@ -200,6 +200,7 @@ PurchaseWrapper purchaseWrapperFromPlatform(PlatformPurchase purchase) {
     pendingPurchaseUpdate: pendingPurchaseUpdateFromPlatform(
       purchase.pendingPurchaseUpdate,
     ),
+    quantity: purchase.quantity,
   );
 }
 

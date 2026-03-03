@@ -51,4 +51,7 @@ class PurchaseDetails {
   /// The initial value is `false`.
   /// * See also [InAppPurchasePlatform.completePurchase] for more details on completing purchases.
   bool pendingCompletePurchase = false;
+
+  /// The quantity purchase
+  int get quantity => 1;
 }

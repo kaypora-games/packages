@@ -32,6 +32,7 @@ class PurchaseWrapper {
     this.obfuscatedAccountId,
     this.obfuscatedProfileId,
     this.pendingPurchaseUpdate,
+    this.quantity = 1,
   });
 
   @override
@@ -53,7 +54,8 @@ class PurchaseWrapper {
         other.originalJson == originalJson &&
         other.isAcknowledged == isAcknowledged &&
         other.purchaseState == purchaseState &&
-        other.pendingPurchaseUpdate == pendingPurchaseUpdate;
+        other.pendingPurchaseUpdate == pendingPurchaseUpdate &&
+        other.quantity == quantity;
   }
 
   @override
@@ -69,6 +71,7 @@ class PurchaseWrapper {
     isAcknowledged,
     purchaseState,
     pendingPurchaseUpdate,
+    quantity,
   );
 
   /// The unique ID for this purchase. Corresponds to the Google Payments order
@@ -147,6 +150,8 @@ class PurchaseWrapper {
   /// upgrading/downgrading an existing subscription.
   /// Returns null if this purchase does not have a pending transaction.
   final PendingPurchaseUpdateWrapper? pendingPurchaseUpdate;
+
+  final int quantity;
 }
 
 @immutable

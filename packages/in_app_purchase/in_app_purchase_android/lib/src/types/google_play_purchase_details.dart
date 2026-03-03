@@ -58,4 +58,8 @@ class GooglePlayPurchaseDetails extends PurchaseDetails {
   /// Points back to the [PurchaseWrapper] which was used to generate this
   /// [GooglePlayPurchaseDetails] object.
   final PurchaseWrapper billingClientPurchase;
+
+  /// The quantity purchase
+  @override
+  int get quantity => billingClientPurchase.quantity;
 }
