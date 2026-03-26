@@ -32,10 +32,10 @@ dependencies:
   json_annotation: ^4.9.0
 
   plato: # swappable
-    path: ../../../../plato/
-    # git:
-      # url: git@github.com:kaypora-games/plato.git
-      # ref: develop-2
+    # path: ../../../../plato/
+    git:
+      url: git@github.com:kaypora-games/plato.git
+      ref: develop-2
 
 dev_dependencies:
   build_runner: ^2.0.0

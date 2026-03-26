@@ -17,10 +17,10 @@ dependencies:
     sdk: flutter
 
   plato: # swappable
-    path: ../../../../plato/
-    # git:
-      # url: git@github.com:kaypora-games/plato.git
-      # ref: develop-2
+    # path: ../../../../plato/
+    git:
+      url: git@github.com:kaypora-games/plato.git
+      ref: develop-2
 
   plugin_platform_interface: ^2.1.7
 
