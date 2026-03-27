@@ -2,6 +2,7 @@
 
 
 
+
 name: in_app_purchase_platform_interface
 description: A common platform interface for the in_app_purchase plugin.
 repository: https://github.com/flutter/packages/tree/main/packages/in_app_purchase/in_app_purchase_platform_interface
@@ -20,10 +21,10 @@ dependencies:
     sdk: flutter
 
   plato: # swappable
-    path: ../../../../plato/
-    # git:
-      # url: git@github.com:kaypora-games/plato.git
-      # ref: develop-2
+    # path: ../../../../plato/
+    git:
+      url: git@github.com:kaypora-games/plato.git
+      ref: develop-2
 
   plugin_platform_interface: ^2.1.7
 
