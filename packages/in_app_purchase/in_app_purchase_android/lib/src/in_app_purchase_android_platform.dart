@@ -14,7 +14,7 @@ import '../billing_client_wrappers.dart';
 import '../in_app_purchase_android.dart';
 import 'billing_client_wrappers/billing_config_wrapper.dart';
 
-const _logr = Debugr(true, prefix: 'iap-android');
+const _logr = Logr(true, prefix: 'iap-android');
 
 /// [IAPError.code] code for failed purchases.
 const String kPurchaseErrorCode = 'purchase_error';
