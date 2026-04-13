@@ -1,4 +1,4 @@
-Name: in_app_purchase_platform_interface
+name: in_app_purchase_platform_interface
 description: A common platform interface for the in_app_purchase plugin.
 repository: https://github.com/flutter/packages/tree/main/packages/in_app_purchase/in_app_purchase_platform_interface
 issue_tracker: https://github.com/flutter/flutter/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+in_app_purchase%22
