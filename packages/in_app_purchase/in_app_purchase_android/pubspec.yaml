@@ -26,10 +26,10 @@ dependencies:
     path: ../in_app_purchase_platform_interface
 
   plato: # swappable
-    # path: ../../../../plato/
-    git:
-      url: git@github.com:kaypora-games/plato.git
-      ref: main
+    path: ../../../../plato/
+    # git:
+      # url: git@github.com:kaypora-games/plato.git
+      # ref: main
 
 dev_dependencies:
   build_runner: ^2.0.0
