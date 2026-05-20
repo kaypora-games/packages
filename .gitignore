@@ -58,3 +58,6 @@ gradlew.bat
 .project
 .classpath
 .settings
+
+# Flutter/Dart/Pub related
+pubspec_overrides.yaml
