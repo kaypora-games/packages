@@ -6,12 +6,6 @@
 
 #import "FGMMarkerUserData.h"
 
-/// Returns dict[key], or nil if dict[key] is NSNull.
-id FGMGetValueOrNilFromDict(NSDictionary *dict, NSString *key) {
-  id value = dict[key];
-  return value == [NSNull null] ? nil : value;
-}
-
 CGPoint FGMGetCGPointForPigeonPoint(FGMPlatformPoint *point) {
   return CGPointMake(point.x, point.y);
 }
@@ -94,6 +88,18 @@ GMSMapViewType FGMGetMapViewTypeForPigeonMapType(FGMPlatformMapType type) {
       return kGMSTypeTerrain;
     case FGMPlatformMapTypeHybrid:
       return kGMSTypeHybrid;
+  }
+}
+
+GMSCollisionBehavior FGMGetCollisionBehaviorForPigeonCollisionBehavior(
+    FGMPlatformMarkerCollisionBehavior collisionBehavior) {
+  switch (collisionBehavior) {
+    case FGMPlatformMarkerCollisionBehaviorRequiredDisplay:
+      return GMSCollisionBehaviorRequired;
+    case FGMPlatformMarkerCollisionBehaviorOptionalAndHidesLowerPriority:
+      return GMSCollisionBehaviorOptionalAndHidesLowerPriority;
+    case FGMPlatformMarkerCollisionBehaviorRequiredAndHidesOptional:
+      return GMSCollisionBehaviorRequiredAndHidesOptional;
   }
 }
 

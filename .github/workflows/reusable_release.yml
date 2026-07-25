@@ -8,8 +8,13 @@ on:
       branch-name:
         required: true
         type: string
-# Declare default permissions as read only.
-permissions: read-all
+    secrets:
+      USER_NAME:
+        required: true
+      USER_EMAIL:
+        required: true
+      PUB_CREDENTIALS:
+        required: true
 jobs:
   release:
     if: github.repository_owner == 'flutter'
@@ -21,10 +26,11 @@ jobs:
     steps:
     # Checks out a copy of the repo.
     - name: Check out code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       with:
         fetch-depth: 0 # Fetch all history so the tool can get all the tags to determine version.
         ref: ${{ inputs.branch-name }}
+        persist-credentials: false
     - name: "Install Flutter"
       uses: ./.github/workflows/internals/install_flutter
     - name: Set up tools
@@ -44,7 +50,8 @@ jobs:
     # because there doesn't appear to be anything to wait for. To avoid that,
     # explicitly wait for one LUCI test by name first.
     - name: Wait for test check-in
-      uses: lewagon/wait-on-check-action@74049309dfeff245fe8009a0137eacf28136cb3c
+      if: inputs.branch-name == 'main'
+      uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
       with:
         ref: ${{ github.sha }}
         check-name: 'Linux ci_yaml packages roller'
@@ -56,7 +63,8 @@ jobs:
 
     # This workflow should be the last to run. So wait for all the other tests to succeed.
     - name: Wait on all tests
-      uses: lewagon/wait-on-check-action@74049309dfeff245fe8009a0137eacf28136cb3c
+      if: inputs.branch-name == 'main'
+      uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
       with:
         ref: ${{ github.sha }}
         running-workflow-name: 'release'
@@ -68,17 +76,23 @@ jobs:
 
     - name: run release
       run: |
+        gh auth setup-git
         git config --global user.name "${{ secrets.USER_NAME }}"
         git config --global user.email "${{ secrets.USER_EMAIL }}"
         
         # Build the flag string based on the input
         BATCH_FLAG=""
         if [ "${{ inputs.is-batch-release }}" = "true" ]; then
-          BATCH_FLAG="--batch-release-branch=${{ inputs.branch-name }}"
+          BATCH_FLAG="--batch-release-branch=${INPUTS_BRANCH_NAME}"
         fi
+        
         dart ./script/tool/lib/src/main.dart publish \
           --all-changed \
           $BATCH_FLAG \
           --base-sha=HEAD~ \
-          --skip-confirmation
-      env: {PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"}
+          --skip-confirmation \
+          --remote=origin
+      env:
+        PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"
+        INPUTS_BRANCH_NAME: "${{ inputs.branch-name }}"
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

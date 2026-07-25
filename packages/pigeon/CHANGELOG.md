@@ -1,3 +1,91 @@
+## 27.3.0
+
+* Adds support for sharing constants across platforms.
+
+## 27.2.0
+
+* Adds support for empty data classes.
+
+## 27.1.2
+
+* Reports a clear error when an input file uses an enhanced enum (one with a
+  constructor, fields, methods, or arguments on its values), instead of
+  silently generating incorrect output.
+
+## 27.1.1
+
+* [dart] Adds usage documentation to generated event channel methods, and
+  emits the user's documentation comments on them.
+
+## 27.1.0
+
+* [swift] Adds `CaseIterable` conformance to generated enums.
+
+## 27.0.0
+
+* **Breaking Change** Overrides `toString` (or equivalent) methods on generated data classes
+  * This can conflict with custom `description` implementations in Swift.
+* [swift] Updates `isNullish` to handle double nested `Any?` values.
+* Updates minimum supported SDK version to Flutter 3.38/Dart 3.10.
+
+## 26.3.4
+
+* [kotlin] Updates generated error class to inherit from `RuntimeException`
+  instead of `Throwable`, for better Java interoperability.
+
+## 26.3.3
+
+* Updates `analyzer` dependency to support versions 10 through 12.
+
+## 26.3.2
+
+* Updates `analyzer` dependency to support version 10.
+
+## 26.3.1
+
+* Fixes dartdoc comments that accidentally used HTML.
+
+## 26.3.0
+
+* Optimizes and improves data class equality and hashing.
+* Changes hashing and equality methods to behave consistently across platforms.
+* Adds equality methods to previously unsupported languages.
+
+## 26.2.3
+
+* Produces a helpful error message when a method return type is missing or an
+  unsupported type, such as a function type or record type.
+
+## 26.2.2
+
+* [dart] Ignores all lint rules in generated code.
+* [dart] In generated code, imports the meta package for annotations, instead of
+  the Flutter foundation library.
+* [dart] In generated code, no longer imports Uint8List.
+* Bumps minimum version of the args package to 2.5.0.
+
+## 26.2.1
+
+* [dart] Improves nullability-handling in generated code.
+
+## 26.2.0
+
+* [kotlin] Adds option to add javax.annotation.Generated annotation.
+
+## 26.1.10
+
+* Dramatically reduces the number of File write operations sent to the operating
+  system during code-generation. This improves performance of IDEs and the Dart
+  analysis server.
+
+## 26.1.9
+
+* [dart] Reduces much duplication in reply-handling code.
+
+## 26.1.8
+
+* Makes some internal class constructors constant.
+
 ## 26.1.7
 
 * [objc] Updates to use module imports.
@@ -857,7 +945,7 @@
 
 ## 3.0.3
 
-* Adds ability for generators to do AST validation.  This can help generators
+* Adds ability for generators to do AST validation. This can help generators
   without complete implementations to report gaps in coverage.
 
 ## 3.0.2
@@ -1020,11 +1108,11 @@
   `dart:mirrors` doesn't support null-safe code so there were a class of
   features we couldn't implement without this migration.
 * **BREAKING CHANGE** - the `configurePigeon` function has been migrated to a
-  `@ConfigurePigeon` annotation.  See `./pigeons/message.dart` for an example.
+  `@ConfigurePigeon` annotation. See `./pigeons/message.dart` for an example.
   The annotation can be attached to anything in the file to take effect.
 * **BREAKING CHANGE** - Now Pigeon files must be in one file per invocation of
-  Pigeon.  For example, the classes your APIs use must be in the same file as
-  your APIs.  If your Pigeon file imports another source file, it won't actually
+  Pigeon. For example, the classes your APIs use must be in the same file as
+  your APIs. If your Pigeon file imports another source file, it won't actually
   import it.
 
 ## 0.2.4
@@ -1046,10 +1134,10 @@
 
 ## 0.2.0
 
-* **BREAKING CHANGE** - Pigeon files must be null-safe now.  That means the
+* **BREAKING CHANGE** - Pigeon files must be null-safe now. That means the
   fields inside of the classes must be declared nullable (
   [non-null fields](https://github.com/flutter/flutter/issues/59118) aren't yet
-  supported).  Migration example:
+  supported). Migration example:
 
 ```dart
 // Version 0.1.x
@@ -1065,7 +1153,7 @@ class Foo {
 }
 ```
 
-* **BREAKING CHANGE** - The default output from Pigeon is now null-safe.  If you
+* **BREAKING CHANGE** - The default output from Pigeon is now null-safe. If you
   want non-null-safe code you must provide the `--no-dart_null_safety` flag.
 * The Pigeon source code is now null-safe.
 * Fixed niladic non-value returning async functions in the Java generator.
@@ -1151,7 +1239,7 @@ class Foo {
 
 ## 0.1.8
 
-* Started spawning pigeon_lib in an isolate instead of a subprocess.  The
+* Started spawning pigeon_lib in an isolate instead of a subprocess. The
   subprocess could have lead to errors if the dart version on $PATH didn't match
   the one that comes with flutter.
 

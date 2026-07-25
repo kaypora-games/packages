@@ -16,6 +16,12 @@ import io.flutter.plugin.common.StandardMessageCodec
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
+const val aStringConstant: String = "stringConstantValue"
+const val aStringConstantWithEscapes: String = "string\\'\\\"\\\$ConstantValue"
+const val anIntConstant: Long = 42L
+const val aDoubleConstant: Double = 3.14
+const val aBoolConstant: Boolean = true
+
 private object CoreTestsPigeonUtils {
 
   fun createConnectionError(channelName: String): FlutterError {
@@ -38,7 +44,36 @@ private object CoreTestsPigeonUtils {
     }
   }
 
+  fun doubleEquals(a: Double, b: Double): Boolean {
+    // Normalize -0.0 to 0.0 and handle NaN equality.
+    return (if (a == 0.0) 0.0 else a) == (if (b == 0.0) 0.0 else b) || (a.isNaN() && b.isNaN())
+  }
+
+  fun floatEquals(a: Float, b: Float): Boolean {
+    // Normalize -0.0 to 0.0 and handle NaN equality.
+    return (if (a == 0.0f) 0.0f else a) == (if (b == 0.0f) 0.0f else b) || (a.isNaN() && b.isNaN())
+  }
+
+  fun doubleHash(d: Double): Int {
+    // Normalize -0.0 to 0.0 and handle NaN to ensure consistent hash codes.
+    val normalized = if (d == 0.0) 0.0 else d
+    val bits = java.lang.Double.doubleToLongBits(normalized)
+    return (bits xor (bits ushr 32)).toInt()
+  }
+
+  fun floatHash(f: Float): Int {
+    // Normalize -0.0 to 0.0 and handle NaN to ensure consistent hash codes.
+    val normalized = if (f == 0.0f) 0.0f else f
+    return java.lang.Float.floatToIntBits(normalized)
+  }
+
   fun deepEquals(a: Any?, b: Any?): Boolean {
+    if (a === b) {
+      return true
+    }
+    if (a == null || b == null) {
+      return false
+    }
     if (a is ByteArray && b is ByteArray) {
       return a.contentEquals(b)
     }
@@ -49,19 +84,108 @@ private object CoreTestsPigeonUtils {
       return a.contentEquals(b)
     }
     if (a is DoubleArray && b is DoubleArray) {
-      return a.contentEquals(b)
+      if (a.size != b.size) return false
+      for (i in a.indices) {
+        if (!doubleEquals(a[i], b[i])) return false
+      }
+      return true
+    }
+    if (a is FloatArray && b is FloatArray) {
+      if (a.size != b.size) return false
+      for (i in a.indices) {
+        if (!floatEquals(a[i], b[i])) return false
+      }
+      return true
     }
     if (a is Array<*> && b is Array<*>) {
-      return a.size == b.size && a.indices.all { deepEquals(a[it], b[it]) }
+      if (a.size != b.size) return false
+      for (i in a.indices) {
+        if (!deepEquals(a[i], b[i])) return false
+      }
+      return true
     }
     if (a is List<*> && b is List<*>) {
-      return a.size == b.size && a.indices.all { deepEquals(a[it], b[it]) }
+      if (a.size != b.size) return false
+      val iterA = a.iterator()
+      val iterB = b.iterator()
+      while (iterA.hasNext() && iterB.hasNext()) {
+        if (!deepEquals(iterA.next(), iterB.next())) return false
+      }
+      return true
     }
     if (a is Map<*, *> && b is Map<*, *>) {
-      return a.size == b.size &&
-          a.all { (b as Map<Any?, Any?>).contains(it.key) && deepEquals(it.value, b[it.key]) }
+      if (a.size != b.size) return false
+      for (entry in a) {
+        val key = entry.key
+        var found = false
+        for (bEntry in b) {
+          if (deepEquals(key, bEntry.key)) {
+            if (deepEquals(entry.value, bEntry.value)) {
+              found = true
+              break
+            } else {
+              return false
+            }
+          }
+        }
+        if (!found) return false
+      }
+      return true
+    }
+    if (a is Double && b is Double) {
+      return doubleEquals(a, b)
+    }
+    if (a is Float && b is Float) {
+      return floatEquals(a, b)
     }
     return a == b
+  }
+
+  fun deepHash(value: Any?): Int {
+    return when (value) {
+      null -> 0
+      is ByteArray -> value.contentHashCode()
+      is IntArray -> value.contentHashCode()
+      is LongArray -> value.contentHashCode()
+      is DoubleArray -> {
+        var result = 1
+        for (item in value) {
+          result = 31 * result + doubleHash(item)
+        }
+        result
+      }
+      is FloatArray -> {
+        var result = 1
+        for (item in value) {
+          result = 31 * result + floatHash(item)
+        }
+        result
+      }
+      is Array<*> -> {
+        var result = 1
+        for (item in value) {
+          result = 31 * result + deepHash(item)
+        }
+        result
+      }
+      is List<*> -> {
+        var result = 1
+        for (item in value) {
+          result = 31 * result + deepHash(item)
+        }
+        result
+      }
+      is Map<*, *> -> {
+        var result = 0
+        for (entry in value) {
+          result += ((deepHash(entry.key) * 31) xor deepHash(entry.value))
+        }
+        result
+      }
+      is Double -> doubleHash(value)
+      is Float -> floatHash(value)
+      else -> value.hashCode()
+    }
   }
 }
 
@@ -76,7 +200,7 @@ class FlutterError(
     val code: String,
     override val message: String? = null,
     val details: Any? = null
-) : Throwable()
+) : RuntimeException()
 
 enum class AnEnum(val raw: Int) {
   ONE(0),
@@ -118,16 +242,25 @@ data class UnusedClass(val aField: Any? = null) {
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is UnusedClass) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as UnusedClass
+    return CoreTestsPigeonUtils.deepEquals(this.aField, other.aField)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aField)
+    return result
+  }
+
+  override fun toString(): String {
+    return "UnusedClass(aField=$aField)"
+  }
 }
 
 /**
@@ -261,16 +394,79 @@ data class AllTypes(
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is AllTypes) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as AllTypes
+    return CoreTestsPigeonUtils.deepEquals(this.aBool, other.aBool) &&
+        CoreTestsPigeonUtils.deepEquals(this.anInt, other.anInt) &&
+        CoreTestsPigeonUtils.deepEquals(this.anInt64, other.anInt64) &&
+        CoreTestsPigeonUtils.deepEquals(this.aDouble, other.aDouble) &&
+        CoreTestsPigeonUtils.deepEquals(this.aByteArray, other.aByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.a4ByteArray, other.a4ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.a8ByteArray, other.a8ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aFloatArray, other.aFloatArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.anEnum, other.anEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.anotherEnum, other.anotherEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.aString, other.aString) &&
+        CoreTestsPigeonUtils.deepEquals(this.anObject, other.anObject) &&
+        CoreTestsPigeonUtils.deepEquals(this.list, other.list) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringList, other.stringList) &&
+        CoreTestsPigeonUtils.deepEquals(this.intList, other.intList) &&
+        CoreTestsPigeonUtils.deepEquals(this.doubleList, other.doubleList) &&
+        CoreTestsPigeonUtils.deepEquals(this.boolList, other.boolList) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumList, other.enumList) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectList, other.objectList) &&
+        CoreTestsPigeonUtils.deepEquals(this.listList, other.listList) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapList, other.mapList) &&
+        CoreTestsPigeonUtils.deepEquals(this.map, other.map) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringMap, other.stringMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.intMap, other.intMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumMap, other.enumMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectMap, other.objectMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.listMap, other.listMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapMap, other.mapMap)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aBool)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anInt)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anInt64)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aDouble)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.a4ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.a8ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aFloatArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anotherEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aString)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anObject)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.list)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.doubleList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.boolList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.map)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapMap)
+    return result
+  }
+
+  override fun toString(): String {
+    return "AllTypes(aBool=$aBool, anInt=$anInt, anInt64=$anInt64, aDouble=$aDouble, aByteArray=${aByteArray.contentToString()}, a4ByteArray=${a4ByteArray.contentToString()}, a8ByteArray=${a8ByteArray.contentToString()}, aFloatArray=${aFloatArray.contentToString()}, anEnum=$anEnum, anotherEnum=$anotherEnum, aString=$aString, anObject=$anObject, list=$list, stringList=$stringList, intList=$intList, doubleList=$doubleList, boolList=$boolList, enumList=$enumList, objectList=$objectList, listList=$listList, mapList=$mapList, map=$map, stringMap=$stringMap, intMap=$intMap, enumMap=$enumMap, objectMap=$objectMap, listMap=$listMap, mapMap=$mapMap)"
+  }
 }
 
 /**
@@ -416,16 +612,85 @@ data class AllNullableTypes(
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is AllNullableTypes) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as AllNullableTypes
+    return CoreTestsPigeonUtils.deepEquals(this.aNullableBool, other.aNullableBool) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableInt, other.aNullableInt) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableInt64, other.aNullableInt64) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableDouble, other.aNullableDouble) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableByteArray, other.aNullableByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullable4ByteArray, other.aNullable4ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullable8ByteArray, other.aNullable8ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableFloatArray, other.aNullableFloatArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableEnum, other.aNullableEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.anotherNullableEnum, other.anotherNullableEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableString, other.aNullableString) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableObject, other.aNullableObject) &&
+        CoreTestsPigeonUtils.deepEquals(this.allNullableTypes, other.allNullableTypes) &&
+        CoreTestsPigeonUtils.deepEquals(this.list, other.list) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringList, other.stringList) &&
+        CoreTestsPigeonUtils.deepEquals(this.intList, other.intList) &&
+        CoreTestsPigeonUtils.deepEquals(this.doubleList, other.doubleList) &&
+        CoreTestsPigeonUtils.deepEquals(this.boolList, other.boolList) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumList, other.enumList) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectList, other.objectList) &&
+        CoreTestsPigeonUtils.deepEquals(this.listList, other.listList) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapList, other.mapList) &&
+        CoreTestsPigeonUtils.deepEquals(this.recursiveClassList, other.recursiveClassList) &&
+        CoreTestsPigeonUtils.deepEquals(this.map, other.map) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringMap, other.stringMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.intMap, other.intMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumMap, other.enumMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectMap, other.objectMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.listMap, other.listMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapMap, other.mapMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.recursiveClassMap, other.recursiveClassMap)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableBool)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableInt)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableInt64)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableDouble)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullable4ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullable8ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableFloatArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anotherNullableEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableString)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableObject)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.allNullableTypes)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.list)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.doubleList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.boolList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.recursiveClassList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.map)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.recursiveClassMap)
+    return result
+  }
+
+  override fun toString(): String {
+    return "AllNullableTypes(aNullableBool=$aNullableBool, aNullableInt=$aNullableInt, aNullableInt64=$aNullableInt64, aNullableDouble=$aNullableDouble, aNullableByteArray=${aNullableByteArray?.contentToString()}, aNullable4ByteArray=${aNullable4ByteArray?.contentToString()}, aNullable8ByteArray=${aNullable8ByteArray?.contentToString()}, aNullableFloatArray=${aNullableFloatArray?.contentToString()}, aNullableEnum=$aNullableEnum, anotherNullableEnum=$anotherNullableEnum, aNullableString=$aNullableString, aNullableObject=$aNullableObject, allNullableTypes=$allNullableTypes, list=$list, stringList=$stringList, intList=$intList, doubleList=$doubleList, boolList=$boolList, enumList=$enumList, objectList=$objectList, listList=$listList, mapList=$mapList, recursiveClassList=$recursiveClassList, map=$map, stringMap=$stringMap, intMap=$intMap, enumMap=$enumMap, objectMap=$objectMap, listMap=$listMap, mapMap=$mapMap, recursiveClassMap=$recursiveClassMap)"
+  }
 }
 
 /**
@@ -560,16 +825,115 @@ data class AllNullableTypesWithoutRecursion(
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is AllNullableTypesWithoutRecursion) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as AllNullableTypesWithoutRecursion
+    return CoreTestsPigeonUtils.deepEquals(this.aNullableBool, other.aNullableBool) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableInt, other.aNullableInt) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableInt64, other.aNullableInt64) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableDouble, other.aNullableDouble) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableByteArray, other.aNullableByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullable4ByteArray, other.aNullable4ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullable8ByteArray, other.aNullable8ByteArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableFloatArray, other.aNullableFloatArray) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableEnum, other.aNullableEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.anotherNullableEnum, other.anotherNullableEnum) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableString, other.aNullableString) &&
+        CoreTestsPigeonUtils.deepEquals(this.aNullableObject, other.aNullableObject) &&
+        CoreTestsPigeonUtils.deepEquals(this.list, other.list) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringList, other.stringList) &&
+        CoreTestsPigeonUtils.deepEquals(this.intList, other.intList) &&
+        CoreTestsPigeonUtils.deepEquals(this.doubleList, other.doubleList) &&
+        CoreTestsPigeonUtils.deepEquals(this.boolList, other.boolList) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumList, other.enumList) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectList, other.objectList) &&
+        CoreTestsPigeonUtils.deepEquals(this.listList, other.listList) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapList, other.mapList) &&
+        CoreTestsPigeonUtils.deepEquals(this.map, other.map) &&
+        CoreTestsPigeonUtils.deepEquals(this.stringMap, other.stringMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.intMap, other.intMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.enumMap, other.enumMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.objectMap, other.objectMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.listMap, other.listMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.mapMap, other.mapMap)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableBool)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableInt)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableInt64)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableDouble)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullable4ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullable8ByteArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableFloatArray)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anotherNullableEnum)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableString)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.aNullableObject)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.list)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.doubleList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.boolList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.map)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.stringMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.intMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.enumMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.objectMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.listMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.mapMap)
+    return result
+  }
+
+  override fun toString(): String {
+    return "AllNullableTypesWithoutRecursion(aNullableBool=$aNullableBool, aNullableInt=$aNullableInt, aNullableInt64=$aNullableInt64, aNullableDouble=$aNullableDouble, aNullableByteArray=${aNullableByteArray?.contentToString()}, aNullable4ByteArray=${aNullable4ByteArray?.contentToString()}, aNullable8ByteArray=${aNullable8ByteArray?.contentToString()}, aNullableFloatArray=${aNullableFloatArray?.contentToString()}, aNullableEnum=$aNullableEnum, anotherNullableEnum=$anotherNullableEnum, aNullableString=$aNullableString, aNullableObject=$aNullableObject, list=$list, stringList=$stringList, intList=$intList, doubleList=$doubleList, boolList=$boolList, enumList=$enumList, objectList=$objectList, listList=$listList, mapList=$mapList, map=$map, stringMap=$stringMap, intMap=$intMap, enumMap=$enumMap, objectMap=$objectMap, listMap=$listMap, mapMap=$mapMap)"
+  }
+}
+
+/**
+ * A data class without fields for testing empty classes.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+class AnEmptyClass {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): AnEmptyClass {
+      return AnEmptyClass()
+    }
+  }
+
+  fun toList(): List<Any?> {
+    return listOf()
+  }
+
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return true
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    return result
+  }
+
+  override fun toString(): String {
+    return "AnEmptyClass()"
+  }
 }
 
 /**
@@ -588,7 +952,8 @@ data class AllClassesWrapper(
     val classList: List<AllTypes?>,
     val nullableClassList: List<AllNullableTypesWithoutRecursion?>? = null,
     val classMap: Map<Long?, AllTypes?>,
-    val nullableClassMap: Map<Long?, AllNullableTypesWithoutRecursion?>? = null
+    val nullableClassMap: Map<Long?, AllNullableTypesWithoutRecursion?>? = null,
+    val anEmptyClass: AnEmptyClass? = null
 ) {
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): AllClassesWrapper {
@@ -599,6 +964,7 @@ data class AllClassesWrapper(
       val nullableClassList = pigeonVar_list[4] as List<AllNullableTypesWithoutRecursion?>?
       val classMap = pigeonVar_list[5] as Map<Long?, AllTypes?>
       val nullableClassMap = pigeonVar_list[6] as Map<Long?, AllNullableTypesWithoutRecursion?>?
+      val anEmptyClass = pigeonVar_list[7] as AnEmptyClass?
       return AllClassesWrapper(
           allNullableTypes,
           allNullableTypesWithoutRecursion,
@@ -606,7 +972,8 @@ data class AllClassesWrapper(
           classList,
           nullableClassList,
           classMap,
-          nullableClassMap)
+          nullableClassMap,
+          anEmptyClass)
     }
   }
 
@@ -619,20 +986,45 @@ data class AllClassesWrapper(
         nullableClassList,
         classMap,
         nullableClassMap,
+        anEmptyClass,
     )
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is AllClassesWrapper) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as AllClassesWrapper
+    return CoreTestsPigeonUtils.deepEquals(this.allNullableTypes, other.allNullableTypes) &&
+        CoreTestsPigeonUtils.deepEquals(
+            this.allNullableTypesWithoutRecursion, other.allNullableTypesWithoutRecursion) &&
+        CoreTestsPigeonUtils.deepEquals(this.allTypes, other.allTypes) &&
+        CoreTestsPigeonUtils.deepEquals(this.classList, other.classList) &&
+        CoreTestsPigeonUtils.deepEquals(this.nullableClassList, other.nullableClassList) &&
+        CoreTestsPigeonUtils.deepEquals(this.classMap, other.classMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.nullableClassMap, other.nullableClassMap) &&
+        CoreTestsPigeonUtils.deepEquals(this.anEmptyClass, other.anEmptyClass)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.allNullableTypes)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.allNullableTypesWithoutRecursion)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.allTypes)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.classList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.nullableClassList)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.classMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.nullableClassMap)
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.anEmptyClass)
+    return result
+  }
+
+  override fun toString(): String {
+    return "AllClassesWrapper(allNullableTypes=$allNullableTypes, allNullableTypesWithoutRecursion=$allNullableTypesWithoutRecursion, allTypes=$allTypes, classList=$classList, nullableClassList=$nullableClassList, classMap=$classMap, nullableClassMap=$nullableClassMap, anEmptyClass=$anEmptyClass)"
+  }
 }
 
 /**
@@ -655,16 +1047,25 @@ data class TestMessage(val testList: List<Any?>? = null) {
   }
 
   override fun equals(other: Any?): Boolean {
-    if (other !is TestMessage) {
+    if (other == null || other.javaClass != javaClass) {
       return false
     }
     if (this === other) {
       return true
     }
-    return CoreTestsPigeonUtils.deepEquals(toList(), other.toList())
+    val other = other as TestMessage
+    return CoreTestsPigeonUtils.deepEquals(this.testList, other.testList)
   }
 
-  override fun hashCode(): Int = toList().hashCode()
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + CoreTestsPigeonUtils.deepHash(this.testList)
+    return result
+  }
+
+  override fun toString(): String {
+    return "TestMessage(testList=$testList)"
+  }
 }
 
 private open class CoreTestsPigeonCodec : StandardMessageCodec() {
@@ -691,9 +1092,12 @@ private open class CoreTestsPigeonCodec : StandardMessageCodec() {
         }
       }
       135.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let { AllClassesWrapper.fromList(it) }
+        return (readValue(buffer) as? List<Any?>)?.let { AnEmptyClass.fromList(it) }
       }
       136.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let { AllClassesWrapper.fromList(it) }
+      }
+      137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let { TestMessage.fromList(it) }
       }
       else -> super.readValueOfType(type, buffer)
@@ -726,12 +1130,16 @@ private open class CoreTestsPigeonCodec : StandardMessageCodec() {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is AllClassesWrapper -> {
+      is AnEmptyClass -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is TestMessage -> {
+      is AllClassesWrapper -> {
         stream.write(136)
+        writeValue(stream, value.toList())
+      }
+      is TestMessage -> {
+        stream.write(137)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -771,6 +1179,14 @@ interface HostIntegrationCoreApi {
   /** Returns the passed list, to test serialization and deserialization. */
   fun echoList(list: List<Any?>): List<Any?>
   /** Returns the passed list, to test serialization and deserialization. */
+  fun echoStringList(stringList: List<String?>): List<String?>
+  /** Returns the passed list, to test serialization and deserialization. */
+  fun echoIntList(intList: List<Long?>): List<Long?>
+  /** Returns the passed list, to test serialization and deserialization. */
+  fun echoDoubleList(doubleList: List<Double?>): List<Double?>
+  /** Returns the passed list, to test serialization and deserialization. */
+  fun echoBoolList(boolList: List<Boolean?>): List<Boolean?>
+  /** Returns the passed list, to test serialization and deserialization. */
   fun echoEnumList(enumList: List<AnEnum?>): List<AnEnum?>
   /** Returns the passed list, to test serialization and deserialization. */
   fun echoClassList(classList: List<AllNullableTypes?>): List<AllNullableTypes?>
@@ -808,6 +1224,12 @@ interface HostIntegrationCoreApi {
   fun echoOptionalDefaultDouble(aDouble: Double): Double
   /** Returns passed in int. */
   fun echoRequiredInt(anInt: Long): Long
+  /** Returns the result of platform-side equality check. */
+  fun areAllNullableTypesEqual(a: AllNullableTypes, b: AllNullableTypes): Boolean
+  /** Returns the platform-side hash code for the given object. */
+  fun getAllNullableTypesHash(value: AllNullableTypes): Long
+  /** Returns the platform-side hash code for the given object. */
+  fun getAllNullableTypesWithoutRecursionHash(value: AllNullableTypesWithoutRecursion): Long
   /** Returns the passed object, to test serialization and deserialization. */
   fun echoAllNullableTypes(everything: AllNullableTypes?): AllNullableTypes?
   /** Returns the passed object, to test serialization and deserialization. */
@@ -1486,6 +1908,94 @@ interface HostIntegrationCoreApi {
         val channel =
             BasicMessageChannel<Any?>(
                 binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.echoStringList$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val stringListArg = args[0] as List<String?>
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.echoStringList(stringListArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.echoIntList$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val intListArg = args[0] as List<Long?>
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.echoIntList(intListArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.echoDoubleList$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val doubleListArg = args[0] as List<Double?>
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.echoDoubleList(doubleListArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.echoBoolList$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val boolListArg = args[0] as List<Boolean?>
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.echoBoolList(boolListArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
                 "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.echoEnumList$separatedMessageChannelSuffix",
                 codec)
         if (api != null) {
@@ -1891,6 +2401,73 @@ interface HostIntegrationCoreApi {
             val wrapped: List<Any?> =
                 try {
                   listOf(api.echoRequiredInt(anIntArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.areAllNullableTypesEqual$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val aArg = args[0] as AllNullableTypes
+            val bArg = args[1] as AllNullableTypes
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.areAllNullableTypesEqual(aArg, bArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.getAllNullableTypesHash$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val valueArg = args[0] as AllNullableTypes
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.getAllNullableTypesHash(valueArg))
+                } catch (exception: Throwable) {
+                  CoreTestsPigeonUtils.wrapError(exception)
+                }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel =
+            BasicMessageChannel<Any?>(
+                binaryMessenger,
+                "dev.flutter.pigeon.pigeon_integration_tests.HostIntegrationCoreApi.getAllNullableTypesWithoutRecursionHash$separatedMessageChannelSuffix",
+                codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val valueArg = args[0] as AllNullableTypesWithoutRecursion
+            val wrapped: List<Any?> =
+                try {
+                  listOf(api.getAllNullableTypesWithoutRecursionHash(valueArg))
                 } catch (exception: Throwable) {
                   CoreTestsPigeonUtils.wrapError(exception)
                 }

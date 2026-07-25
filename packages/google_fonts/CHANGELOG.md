@@ -1,3 +1,16 @@
+## 8.2.0
+
+- Extract the class `Config` to its own file and rename it `GoogleFontsConfig`. The `Config` class is now deprecated.
+- Updates minimum supported SDK version to Flutter 3.38/Dart 3.10.
+
+## 8.1.0
+
+- Adds the ability to supply a custom HTTP client to `GoogleFonts.config`.
+
+## 8.0.2
+
+- Fixes a bug where exceptions thrown during return within try blocks in an async function were not correctly caught, aligning behavior with expected Dart semantics (see [dart-lang/sdk#44395](https://github.com/dart-lang/sdk/issues/44395)).
+
 ## 8.0.1
 
 - Fixes WOFF2/WOFF font selection when loading fonts bundled with the app to prefer compressed formats regardless of asset manifest order.
@@ -567,7 +580,6 @@
   - `Wix Madefor Display`
   - `Wix Madefor Text`
   - `Ysabeau`
-
 - Removed fonts:
   - `Arima Madurai`
   - `Fredoka One`
