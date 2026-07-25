@@ -66,6 +66,9 @@ gradlew.bat
 .classpath
 .settings
 
+# Flutter/Dart/Pub related
+pubspec_overrides.yaml
+
 # AI related
 .agents/rules/personal-*
 .agents/skills/personal-*
