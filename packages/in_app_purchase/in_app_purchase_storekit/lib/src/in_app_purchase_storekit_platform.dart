@@ -31,7 +31,7 @@ class InAppPurchaseStoreKitPlatform extends InAppPurchasePlatform {
   InAppPurchaseStoreKitPlatform();
 
   /// StoreKit1
-  static late SKPaymentQueueWrapper _skPaymentQueueWrapper;
+  // static late SKPaymentQueueWrapper _skPaymentQueueWrapper;
   static late _TransactionObserver _sk1transactionObserver;
 
   /// StoreKit2
@@ -58,7 +58,7 @@ class InAppPurchaseStoreKitPlatform extends InAppPurchasePlatform {
     // InAppPurchase API.
     InAppPurchasePlatform.instance = InAppPurchaseStoreKitPlatform();
 
-    _skPaymentQueueWrapper = SKPaymentQueueWrapper();
+    // _skPaymentQueueWrapper = SKPaymentQueueWrapper();
 
     final updateController2 = StreamController<List<PurchaseDetails>>.broadcast(
       onListen: () => SK2Transaction.startListeningToTransactions(),
