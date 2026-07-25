@@ -10,8 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
     
-#  in_app_purchase_platform_interface: ^1.0.0
-  
   in_app_purchase_platform_interface:
     path: ../../in_app_purchase_platform_interface
     
