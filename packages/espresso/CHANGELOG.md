@@ -1,3 +1,22 @@
+## 0.4.0+25
+
+* Bumps com.google.guava:guava from 33.5.0-android to 33.6.0-android.
+* Updates minimum supported SDK version to Flutter 3.38/Dart 3.10.
+
+## 0.4.0+24
+
+* Updates build files from Groovy to Kotlin.
+
+## 0.4.0+23
+
+* Removed the unused `io.flutter.network-policy` metadata tag from the README and example application.
+
+## 0.4.0+22
+
+* Updates minimum supported SDK version to Flutter 3.35/Dart 3.9.
+* Updates README to remove usesCleartextTraffic.  Users should use
+  network security configuration instead. 
+
 ## 0.4.0+21
 
 * Updates README to reflect currently supported OS version.

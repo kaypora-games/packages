@@ -7,10 +7,10 @@ import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_inte
 import '../in_app_purchase_storekit.dart';
 import '../store_kit_2_wrappers.dart';
 import '../store_kit_wrappers.dart';
+import './in_app_purchase_storekit_platform.dart';
 
 /// Contains InApp Purchase features that are only available on iOS.
-class InAppPurchaseStoreKitPlatformAddition
-    extends InAppPurchasePlatformAddition {
+class InAppPurchaseStoreKitPlatformAddition extends InAppPurchasePlatformAddition {
   /// Synchronizes your app’s transaction information and subscription status
   /// with information from the App Store.
   /// Storekit 2 only
@@ -23,7 +23,11 @@ class InAppPurchaseStoreKitPlatformAddition
   /// Available on devices running iOS 14 and iPadOS 14 and later.
   /// Available for StoreKit 1 and 2
   Future<void> presentCodeRedemptionSheet() {
-    return SKPaymentQueueWrapper().presentCodeRedemptionSheet();
+    return AppStore().presentOfferCodeRedeemSheet();
+    // if (InAppPurchaseStoreKitPlatform.isStoreKit2Enabled) {
+    //   return AppStore().presentOfferCodeRedeemSheet();
+    // }
+    // return SKPaymentQueueWrapper().presentCodeRedemptionSheet();
   }
 
   /// Retry loading purchase data after an initial failure.
@@ -69,6 +73,5 @@ class InAppPurchaseStoreKitPlatformAddition
   /// `SKPaymentQueueDelegateWrapper.shouldShowPriceConsent()` method was called.
   ///
   /// See documentation of StoreKit's [`-[SKPaymentQueue showPriceConsentIfNeeded]`](https://developer.apple.com/documentation/storekit/skpaymentqueue/3521327-showpriceconsentifneeded?language=objc).
-  Future<void> showPriceConsentIfNeeded() =>
-      SKPaymentQueueWrapper().showPriceConsentIfNeeded();
+  Future<void> showPriceConsentIfNeeded() => SKPaymentQueueWrapper().showPriceConsentIfNeeded();
 }

@@ -10,9 +10,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Returns dict[key], or nil if dict[key] is NSNull.
-extern id _Nullable FGMGetValueOrNilFromDict(NSDictionary *dict, NSString *key);
-
 /// Creates a CGPoint from its Pigeon equivalent.
 extern CGPoint FGMGetCGPointForPigeonPoint(FGMPlatformPoint *point);
 
@@ -52,6 +49,10 @@ extern GMSMutablePath *FGMGetPathFromPoints(NSArray<CLLocation *> *points);
 
 /// Creates a GMSMapViewType from its Pigeon representation.
 extern GMSMapViewType FGMGetMapViewTypeForPigeonMapType(FGMPlatformMapType type);
+
+/// Creates a GMSCollisionBehavior from its Pigeon representation.
+extern GMSCollisionBehavior FGMGetCollisionBehaviorForPigeonCollisionBehavior(
+    FGMPlatformMarkerCollisionBehavior collisionBehavior);
 
 /// Converts a GMUStaticCluster to its Pigeon representation.
 extern FGMPlatformCluster *FGMGetPigeonCluster(GMUStaticCluster *cluster,

@@ -1,3 +1,26 @@
+## 0.4.11
+
+* Fixes StoreKit 2 date format does not match in_app_purchase_platform_interface PurchaseDetails.transactionDate format.
+  Fixes both `SK2Transaction.purchaseDate` and `SK2Transaction.expirationDate`.
+
+## 0.4.10+1
+
+* Fixes SK2Transaction to expose the real purchased quantity instead of defaulting to 1.
+
+## 0.4.10
+
+* Clarifies `completePurchase` usage and the consequences of unfinished transactions in the README and API docstrings.
+* Prevents duplicate purchase attempts in StoreKit 2 by throwing a `storekit_duplicate_product_object` error when a product already has an unfinished transaction.
+
+## 0.4.9
+
+* Add support for offer codes in StoreKit 2.
+* Updates minimum supported SDK version to Flutter 3.38.
+
+## 0.4.8+1
+
+* Fixes StoreKit 2 purchase flow to send cancelled/pending/unverified results to `purchaseStream`.
+
 ## 0.4.8
 
 * Fixes an issue causing StoreKit2 purchases to be reported as `restored` and left in an
@@ -20,7 +43,7 @@
 ## 0.4.6
 
 * Adds a new case `.unverified` to enum `SK2ProductPurchaseResult`
-* Fixes the StoreKit2 implementation throwing `PlatformException`s instead of returning the corresponding 
+* Fixes the StoreKit2 implementation throwing `PlatformException`s instead of returning the corresponding
 `SK2ProductPurchaseResult` when a purchase is cancelled / unverified / pending.
 
 ## 0.4.5
@@ -49,7 +72,7 @@
 
 * Updates minimum supported SDK version to Flutter 3.27/Dart 3.6.
 * Adds **Win Back Offers** support for StoreKit2:
-    - Includes new `isWinBackOfferEligible` function for eligibility verification
+  * Includes new `isWinBackOfferEligible` function for eligibility verification
 * Adds **Promotional Offers** support in StoreKit2 purchases
 * Fixes introductory pricing handling in promotional offers list in StoreKit2
 * Ensures proper `appAccountToken` handling for StoreKit2 purchases

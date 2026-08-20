@@ -14,10 +14,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:video_player/video_player.dart';
 
-// Skip due to video_player error.
-// See https://github.com/flutter/flutter/issues/157181
-const bool skipFor157181 = true;
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -47,31 +43,23 @@ void main() {
   testWidgets('availableCameras only supports valid back or front cameras', (
     WidgetTester tester,
   ) async {
-    final List<CameraDescription> availableCameras = await CameraPlatform
-        .instance
+    final List<CameraDescription> availableCameras = await CameraPlatform.instance
         .availableCameras();
 
     for (final cameraDescription in availableCameras) {
-      expect(
-        cameraDescription.lensDirection,
-        isNot(CameraLensDirection.external),
-      );
+      expect(cameraDescription.lensDirection, isNot(CameraLensDirection.external));
       expect(cameraDescription.sensorOrientation, anyOf(0, 90, 180, 270));
     }
   });
 
-  testWidgets('Preview takes expected resolution from preset', (
-    WidgetTester tester,
-  ) async {
-    final List<CameraDescription> cameras = await CameraPlatform.instance
-        .availableCameras();
+  testWidgets('Preview takes expected resolution from preset', (WidgetTester tester) async {
+    final List<CameraDescription> cameras = await CameraPlatform.instance.availableCameras();
     if (cameras.isEmpty) {
       return;
     }
     for (final cameraDescription in cameras) {
       var previousPresetExactlySupported = true;
-      for (final MapEntry<ResolutionPreset, Size> preset
-          in presetExpectedSizes.entries) {
+      for (final MapEntry<ResolutionPreset, Size> preset in presetExpectedSizes.entries) {
         final controller = CameraController(
           cameraDescription,
           mediaSettings: MediaSettings(resolutionPreset: preset.key),
@@ -104,15 +92,13 @@ void main() {
   testWidgets('Images from streaming have expected resolution from preset', (
     WidgetTester tester,
   ) async {
-    final List<CameraDescription> cameras = await CameraPlatform.instance
-        .availableCameras();
+    final List<CameraDescription> cameras = await CameraPlatform.instance.availableCameras();
     if (cameras.isEmpty) {
       return;
     }
     for (final cameraDescription in cameras) {
       var previousPresetExactlySupported = true;
-      for (final MapEntry<ResolutionPreset, Size> preset
-          in presetExpectedSizes.entries) {
+      for (final MapEntry<ResolutionPreset, Size> preset in presetExpectedSizes.entries) {
         final controller = CameraController(
           cameraDescription,
           mediaSettings: MediaSettings(resolutionPreset: preset.key),
@@ -152,9 +138,7 @@ void main() {
 
     final controller = CameraController(
       cameras[0],
-      mediaSettings: const MediaSettings(
-        resolutionPreset: ResolutionPreset.low,
-      ),
+      mediaSettings: const MediaSettings(resolutionPreset: ResolutionPreset.low),
     );
     await controller.initialize();
     await controller.prepareForVideoRecording();
@@ -162,11 +146,10 @@ void main() {
     await controller.startVideoRecording();
     final int recordingStart = DateTime.now().millisecondsSinceEpoch;
 
-    sleep(const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(seconds: 2));
 
     final XFile file = await controller.stopVideoRecording();
-    final int postStopTime =
-        DateTime.now().millisecondsSinceEpoch - recordingStart;
+    final int postStopTime = DateTime.now().millisecondsSinceEpoch - recordingStart;
 
     final videoFile = File(file.path);
     final videoController = VideoPlayerController.file(videoFile);
@@ -175,7 +158,7 @@ void main() {
     await videoController.dispose();
 
     expect(duration, lessThan(postStopTime));
-  }, skip: skipFor157181);
+  });
 
   testWidgets('Pause and resume video recording', (WidgetTester tester) async {
     final List<CameraDescription> cameras = await availableCameras();
@@ -185,9 +168,7 @@ void main() {
 
     final controller = CameraController(
       cameras[0],
-      mediaSettings: const MediaSettings(
-        resolutionPreset: ResolutionPreset.low,
-      ),
+      mediaSettings: const MediaSettings(resolutionPreset: ResolutionPreset.low),
     );
     await controller.initialize();
     await controller.prepareForVideoRecording();
@@ -198,21 +179,21 @@ void main() {
 
     await controller.startVideoRecording();
     final int recordingStart = DateTime.now().millisecondsSinceEpoch;
-    sleep(const Duration(milliseconds: 500));
+    await Future<void>.delayed(const Duration(milliseconds: 500));
 
     for (var i = 0; i < pauseIterations; i++) {
       await controller.pauseVideoRecording();
       startPause = DateTime.now().millisecondsSinceEpoch;
-      sleep(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
       await controller.resumeVideoRecording();
       timePaused += DateTime.now().millisecondsSinceEpoch - startPause;
 
-      sleep(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
 
     final XFile file = await controller.stopVideoRecording();
-    final int recordingTime =
-        DateTime.now().millisecondsSinceEpoch - recordingStart;
+    final int recordingTime = DateTime.now().millisecondsSinceEpoch - recordingStart;
 
     final videoFile = File(file.path);
     final videoController = VideoPlayerController.file(videoFile);
@@ -221,11 +202,9 @@ void main() {
     await videoController.dispose();
 
     expect(duration, lessThan(recordingTime - timePaused));
-  }, skip: skipFor157181);
+  });
 
-  testWidgets('Set description while recording captures full video', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('Set description while recording captures full video', (WidgetTester tester) async {
     final List<CameraDescription> cameras = await availableCameras();
     if (cameras.length < 2) {
       return;
@@ -243,13 +222,15 @@ void main() {
 
     await controller.startVideoRecording();
 
+    await Future<void>.delayed(const Duration(seconds: 1));
+
     await controller.setDescription(cameras[1]);
 
-    await tester.pumpAndSettle(const Duration(seconds: 4));
+    await Future<void>.delayed(const Duration(seconds: 4));
 
     await controller.setDescription(cameras[0]);
 
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await Future<void>.delayed(const Duration(seconds: 1));
 
     final XFile file = await controller.stopVideoRecording();
 
@@ -259,10 +240,7 @@ void main() {
     final int duration = videoController.value.duration.inMilliseconds;
     await videoController.dispose();
 
-    expect(
-      duration,
-      greaterThanOrEqualTo(const Duration(seconds: 4).inMilliseconds),
-    );
+    expect(duration, greaterThanOrEqualTo(const Duration(seconds: 4).inMilliseconds));
     await controller.dispose();
   });
 }

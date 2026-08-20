@@ -1,6 +1,23 @@
-## NEXT
+## 2.13.0
 
-* Updates minimum supported SDK version to Flutter 3.32/Dart 3.8.
+* Adds `preventsDisplaySleepDuringVideoPlayback` to `VideoPlayerOptions` and
+  `VideoPlayerValue`, and `setPreventsDisplaySleepDuringVideoPlayback` to
+  `VideoPlayerController`, to control whether the display sleeps during playback
+  on iOS and macOS.
+
+## 2.12.0
+
+* Passes `backBufferDurationMs` from `VideoPlayerOptions` to the underlying platform interface.
+* Updates minimum supported SDK version to Flutter 3.38/Dart 3.10.
+
+## 2.11.1
+
+* Optimizes caption retrieval with binary search.
+
+## 2.11.0
+
+* Adds `getAudioTracks()` and `selectAudioTrack()` methods to retrieve and select available audio tracks.
+* Updates minimum supported SDK version to Flutter 3.38/Dart 3.10.
 * Updates README to reflect currently supported OS versions for the latest
   versions of the endorsed platform implementations.
   * Applications built with older versions of Flutter will continue to
@@ -604,14 +621,12 @@ DefaultHttpDataSourceFactory by default.
 ## 0.10.0+8
 
 * iOS: Fix an issue where the player sends initialization message incorrectly.
-
 * Fix a few other IDE warnings.
 
 
 ## 0.10.0+7
 
 * Android: Fix issue where buffering status in percentage instead of milliseconds
-
 * Android: Update buffering status everytime we notify for position change
 
 ## 0.10.0+6

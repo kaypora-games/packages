@@ -1,3 +1,53 @@
+## 0.7.4+2
+
+* Bumps cameraxVersion from 1.6.0 to 1.6.1.
+* Updates androidx.camera:camera-core from 1.6.0 to 1.6.1.
+* Updates androidx.camera:camera-camera2 from 1.6.0 to 1.6.1.
+* Updates androidx.camera:camera-lifecycle from 1.6.0 to 1.6.1.
+* Updates androidx.camera:camera-video from 1.6.0 to 1.6.1.
+
+## 0.7.4+1
+
+* Fixes a `StateError` ("Bad state: No element") in `setFocusMode(FocusMode.auto)`
+  when the current focus and metering action has no auto-focus points.
+
+## 0.7.4
+
+* Adds `setJpegImageQuality` for controlling JPEG compression quality.
+
+## 0.7.3
+
+* Fixes `videoBitrate` configuration being ignored during video recording.
+
+## 0.7.2+1
+
+* Migrates to Built-in Kotlin to support AGP 9.
+* Updates minimum supported SDK version to Flutter 3.44/Dart 3.12.
+
+## 0.7.2
+
+* Bumps camerax_version from 1.5.3 to 1.6.0.
+
+## 0.7.1+2
+
+* Fixes dartdoc comments that accidentally used HTML.
+
+## 0.7.1+1
+
+* Updates build files from Groovy to Kotlin.
+
+## 0.7.1
+
+* Removes outdated restrictions against concurrent camera use cases.
+
+## 0.7.0+1
+
+* Updates example to demonstrate correct exception handling for async return statements, ensuring exceptions thrown during return within try blocks are properly caught as per [dart-lang/sdk#44395](https://github.com/dart-lang/sdk/issues/44395).
+
+## 0.7.0
+
+* Adds video stabilization.
+
 ## 0.6.30
 
 * Bump camerax_version from 1.5.2 to 1.5.3.
